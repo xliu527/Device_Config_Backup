@@ -1,0 +1,51 @@
+---
+- hosts: NX-OS
+  connection: local
+
+  vars:
+    backup_root: /he/config_backups_switches
+
+#    cli:
+#      host: "{{ inventory_hostname }}"
+
+
+
+  tasks:
+    - name: run show running-config on remote devices
+      nxos_command:
+        commands: show running all
+        wait_for: result[0] contains interface
+#        timeout: 180
+#       provider: "{{ cli }}"
+        provider:
+         timeout: 180
+
+      register: config
+
+    - name: ensure backup folder is created
+      file:
+        path: "{{ backup_root }}"
+        state: directory
+      run_once: yes
+   
+    - name: get timestamp
+      command: date +%Y%m%d
+      register: timestamp
+
+    - name: ensure daily folder is created
+      file:
+        path: "{{ backup_root }}/{{ timestamp.stdout }}"
+        state: directory
+  
+#    - name: ensure daily folder is created
+#      file:
+#        path: "{{ backup_root }}/{{ inventory_hostname }}"
+#        state: directory
+
+    - name: get timestamp
+      command: date +%Y%m%d
+      register: timestamp
+
+    - copy:
+        content: "{{ config.stdout[0] }}"
+        dest: "{{ backup_root }}/{{ timestamp.stdout }}/{{ inventory_hostname }}_running-config.txt"

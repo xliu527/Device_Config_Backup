@@ -1,0 +1,48 @@
+---
+- hosts: ASA
+  connection: network_cli
+  become: yes
+  become_method: enable
+
+  
+
+  vars:
+    backup_root: /he/config_backups_ASA
+    ansible_user: 
+    ansibl_ssh_pass: 
+    ansible_become_pass: 
+
+  tasks:
+    - name: run show running-config on remote devices
+      asa_command:
+        commands: show running
+#      provider: "{{ cli }}"
+      register: config
+
+    - name: ensure backup folder is created
+      file:
+        path: "{{ backup_root }}"
+        state: directory
+      run_once: yes
+   
+    - name: get timestamp
+      command: date +%Y%m%d
+      register: timestamp
+
+    - name: ensure daily folder is created
+      file:
+        path: "{{ backup_root }}/{{ timestamp.stdout }}"
+        state: directory
+  
+#    - name: ensure daily folder is created
+#      file:
+#        path: "{{ backup_root }}/{{ inventory_hostname }}"
+#        state: directory
+
+    - name: get timestamp
+      command: date +%Y%m%d
+      register: timestamp
+
+    - copy:
+        content: "{{ config.stdout[0] }}"
+        dest: "{{ backup_root }}/{{ timestamp.stdout }}/{{ inventory_hostname }}_running-config.txt"
